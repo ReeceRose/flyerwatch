@@ -46,6 +46,9 @@ const INITIAL: ShoppingState = {
 
 let state: ShoppingState = INITIAL;
 let started = false;
+// Saves still on their way to the extension. Change events that arrive in the
+// meantime describe older state and would undo the edit on screen.
+let saving = 0;
 const listeners = new Set<() => void>();
 const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
 
@@ -109,7 +112,7 @@ function onMessage(event: MessageEvent<BridgeReply>) {
     else entry?.reject(new Error(error ?? "The extension couldn't do that"));
     return;
   }
-  if (type === "changed" && state.connected) emit({ ...state, ...fromRaw(result as RawState) });
+  if (type === "changed" && state.connected && saving === 0) emit({ ...state, ...fromRaw(result as RawState) });
   if (type === "ready" && !state.connected && state.ready) connect();
 }
 
@@ -168,13 +171,16 @@ async function save(update: Partial<Stored>) {
     writeLocal({ settings: next.settings, pantry: next.pantry, list: next.list });
     return;
   }
+  saving++;
   try {
     if (update.settings) await request("setSettings", update.settings);
     if (update.pantry) await request("setPantry", update.pantry);
     if (update.list) await request("setList", update.list);
   } catch {
-    emit({ ...next, connected: false });
-    writeLocal({ settings: next.settings, pantry: next.pantry, list: next.list });
+    emit({ ...state, connected: false });
+    writeLocal({ settings: state.settings, pantry: state.pantry, list: state.list });
+  } finally {
+    saving--;
   }
 }
 

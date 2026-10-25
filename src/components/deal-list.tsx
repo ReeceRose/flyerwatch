@@ -9,9 +9,11 @@ export type DealListProps = {
   deals: Deal[];
   highlightFirst?: boolean;
   showStore?: boolean;
+  /** Where these deals were found, when it may not be this site's saved postal code. */
+  postal?: string;
 };
 
-export function DealList({ deals, highlightFirst = false, showStore = true }: DealListProps) {
+export function DealList({ deals, highlightFirst = false, showStore = true, postal }: DealListProps) {
   const [open, setOpen] = useState<Deal | null>(null);
 
   return (
@@ -27,7 +29,7 @@ export function DealList({ deals, highlightFirst = false, showStore = true }: De
           />
         ))}
       </ul>
-      <DealDialog deal={open} onClose={() => setOpen(null)} />
+      <DealDialog deal={open} postal={postal} onClose={() => setOpen(null)} />
     </>
   );
 }

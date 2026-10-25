@@ -3,6 +3,8 @@
 Compare this week's grocery flyer prices near you. Data comes from Flipp's public flyer API (unofficial and undocumented, so it may change).
 
 ```bash
+git clone https://github.com/ReeceRose/flyerwatch.git
+cd flyerwatch
 pnpm install
 pnpm dev
 ```
@@ -53,3 +55,7 @@ There are no tests yet. Before committing, run:
 pnpm build             # type-checks and builds
 pnpm sync:extension    # if you touched src/shared/
 ```
+
+## License
+
+[MIT](LICENSE)

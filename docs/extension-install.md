@@ -6,7 +6,7 @@ The extension works on its own: it searches Flipp directly, so you don't need th
 
 ## Install
 
-1. Get the `extension/` folder onto your computer, either by cloning this repo or by unzipping a copy someone sent you (see [Sharing a copy](#sharing-a-copy)). Keep it somewhere permanent: Chrome loads the files from that folder every time, so moving or deleting it breaks the extension.
+1. Get the `extension/` folder onto your computer, either by cloning [the repo](https://github.com/ReeceRose/flyerwatch) or by unzipping a copy someone sent you (see [Sharing a copy](#sharing-a-copy)). Keep it somewhere permanent: Chrome loads the files from that folder every time, so moving or deleting it breaks the extension.
 2. Open `chrome://extensions` (`edge://extensions` in Edge, `brave://extensions` in Brave).
 3. Turn on **Developer mode** (top right).
 4. Click **Load unpacked** and pick the `extension` folder, the one that contains `manifest.json`.

@@ -28,14 +28,16 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
 }
 
-// The page: try the network briefly so updates arrive, then fall back to the saved copy.
+// The page: try the network briefly so updates arrive, then fall back to the
+// saved copy. With nothing saved yet, keep waiting for the network instead.
 async function page(request) {
+  const network = fetch(request).then((response) => save(PAGE, response));
+  network.catch(() => null); // Answered from the saved copy, a late failure doesn't matter.
   try {
-    return await save(PAGE, await withTimeout(fetch(request), NETWORK_TIMEOUT));
+    return await withTimeout(network, NETWORK_TIMEOUT);
   } catch {
     const saved = await caches.match(PAGE);
-    if (saved) return saved;
-    throw new Error("Not saved for offline use yet");
+    return saved ?? network;
   }
 }
 

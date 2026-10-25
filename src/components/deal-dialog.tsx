@@ -10,7 +10,15 @@ import { formatMoney, pricePerItem, pricePerLb } from "@/lib/price";
 
 type Status = "idle" | "loading" | "ready" | "failed";
 
-export function DealDialog({ deal, onClose }: { deal: Deal | null; onClose: () => void }) {
+export function DealDialog({
+  deal,
+  postal,
+  onClose,
+}: {
+  deal: Deal | null;
+  postal?: string;
+  onClose: () => void;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const [detail, setDetail] = useState<DealDetail | null>(null);
   const [status, setStatus] = useState<Status>("idle");
@@ -91,7 +99,7 @@ export function DealDialog({ deal, onClose }: { deal: Deal | null; onClose: () =
           <div className="mt-6 grid grid-cols-[1fr_auto] items-end gap-6">
             <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-shelf p-4">
               <FallbackImage
-                src={dealImageUrl(shown, 900)}
+                src={dealImageUrl(shown, 900, postal)}
                 fallback={shown.imageUrl}
                 loading="eager"
                 className="max-h-full max-w-full object-contain"

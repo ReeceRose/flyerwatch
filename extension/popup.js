@@ -55,7 +55,9 @@ function priceTag(deal) {
 
 function openDeal(deal) {
   const base = state.settings.flyerwatchUrl?.replace(/\/+$/, "");
-  if (base) chrome.tabs.create({ url: `${base}/flyers/${deal.flyerId}` });
+  if (!base) return;
+  const postal = state.settings.postal ? `?postal=${encodeURIComponent(state.settings.postal)}` : "";
+  chrome.tabs.create({ url: `${base}/flyers/${deal.flyerId}${postal}` });
 }
 
 function dealCard(deal, { compact = false } = {}) {

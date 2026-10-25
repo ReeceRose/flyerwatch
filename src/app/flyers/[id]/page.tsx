@@ -5,14 +5,17 @@ import { FlyerView } from "@/components/flyer-view";
 import { ResultsSkeleton } from "@/components/skeletons";
 import { getFlyer } from "@/lib/flipp";
 import { formatRange } from "@/lib/format";
-import { readPostal } from "@/lib/postal";
+import { normalizePostal, readPostal } from "@/lib/postal";
 
-async function Flyer({ params }: { params: PageProps<"/flyers/[id]">["params"] }) {
+async function Flyer({ params, searchParams }: PageProps<"/flyers/[id]">) {
   const { id } = await params;
   const flyerId = Number.parseInt(id, 10);
   if (!Number.isFinite(flyerId)) notFound();
 
-  const postal = await readPostal();
+  // The extension links here with the postal code it found the deal under,
+  // which can differ from the one this site has saved.
+  const { postal: linked } = await searchParams;
+  const postal = (typeof linked === "string" && normalizePostal(linked)) || (await readPostal());
   let data: Awaited<ReturnType<typeof getFlyer>>;
   try {
     data = await getFlyer(postal, flyerId);
@@ -32,12 +35,12 @@ async function Flyer({ params }: { params: PageProps<"/flyers/[id]">["params"] }
           {pages.length} pages, {deals.length} deals
         </p>
       </div>
-      <FlyerView flyerId={flyerId} pages={pages} deals={deals} />
+      <FlyerView flyerId={flyerId} postal={postal} pages={pages} deals={deals} />
     </>
   );
 }
 
-export default function FlyerPage({ params }: PageProps<"/flyers/[id]">) {
+export default function FlyerPage({ params, searchParams }: PageProps<"/flyers/[id]">) {
   return (
     <>
       <Link href="/flyers" className="mt-4 inline-block text-sm font-semibold text-muted hover:text-ink">
@@ -51,7 +54,7 @@ export default function FlyerPage({ params }: PageProps<"/flyers/[id]">) {
           </div>
         }
       >
-        <Flyer params={params} />
+        <Flyer params={params} searchParams={searchParams} />
       </Suspense>
     </>
   );

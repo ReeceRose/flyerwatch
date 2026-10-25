@@ -11,6 +11,15 @@ type ListRecipesProps = {
   onRemoveExtra: (text: string) => void;
 };
 
+// Recipes come from the extension's storage, so only web links become links.
+function webLink(url: string): string | undefined {
+  try {
+    return /^https?:$/.test(new URL(url).protocol) ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function ListRecipes({ recipes, extras, onRemoveRecipe, onAddExtra, onRemoveExtra }: ListRecipesProps) {
   const [draft, setDraft] = useState("");
   const inputId = useId();
@@ -25,7 +34,7 @@ export function ListRecipes({ recipes, extras, onRemoveRecipe, onAddExtra, onRem
               <li key={recipe.id} className="flex items-center justify-between gap-4 py-3">
                 <div className="min-w-0">
                   <a
-                    href={recipe.url}
+                    href={webLink(recipe.url)}
                     target="_blank"
                     rel="noreferrer"
                     className="font-semibold hover:underline hover:decoration-2 hover:underline-offset-4"

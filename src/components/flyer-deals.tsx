@@ -4,7 +4,7 @@ import { useDeferredValue, useId, useState } from "react";
 import { DealList } from "@/components/deal-list";
 import type { Deal } from "@/lib/flipp";
 
-export function FlyerDeals({ deals }: { deals: Deal[] }) {
+export function FlyerDeals({ deals, postal }: { deals: Deal[]; postal?: string }) {
   const [filter, setFilter] = useState("");
   const deferred = useDeferredValue(filter);
   const inputId = useId();
@@ -35,7 +35,7 @@ export function FlyerDeals({ deals }: { deals: Deal[] }) {
         ) : null}
       </div>
       {shown.length ? (
-        <DealList deals={shown} showStore={false} />
+        <DealList deals={shown} postal={postal} showStore={false} />
       ) : (
         <p className="text-lg text-muted">Nothing in this flyer matches &ldquo;{deferred}&rdquo;.</p>
       )}

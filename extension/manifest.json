@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Flyerwatch: Recipe deals",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "See which ingredients in the recipe you're reading are on sale in this week's grocery flyers near you.",
   "permissions": [
     "activeTab",

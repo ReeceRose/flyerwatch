@@ -3,12 +3,15 @@ import { normalizePostal } from "@/lib/postal-code";
 import { rankDeals } from "@/lib/shopping/shared";
 
 const MAX_DEALS = 12;
+// Ingredient names are short; longer searches would only fill the cache.
+const MAX_TERM = 60;
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams;
   const term = query.get("q")?.trim().toLowerCase() ?? "";
   const postal = normalizePostal(query.get("postal") ?? "");
   if (!term || !postal) return Response.json({ error: "Send a search word and a postal code" }, { status: 400 });
+  if (term.length > MAX_TERM) return Response.json({ error: "That search is too long" }, { status: 400 });
 
   try {
     const [flyers, deals] = await Promise.all([getFlyers(postal), searchDeals(postal, term)]);

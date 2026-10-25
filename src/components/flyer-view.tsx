@@ -10,7 +10,17 @@ const VIEWS = [
   { key: "list", label: "List of deals" },
 ];
 
-export function FlyerView({ flyerId, pages, deals }: { flyerId: number; pages: FlyerPage[]; deals: Deal[] }) {
+export function FlyerView({
+  flyerId,
+  postal,
+  pages,
+  deals,
+}: {
+  flyerId: number;
+  postal: string;
+  pages: FlyerPage[];
+  deals: Deal[];
+}) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -24,9 +34,13 @@ export function FlyerView({ flyerId, pages, deals }: { flyerId: number; pages: F
             key={option.key}
             type="button"
             aria-pressed={view === option.key}
-            onClick={() =>
-              router.replace(option.key === "pages" ? pathname : `${pathname}?view=list`, { scroll: false })
-            }
+            onClick={() => {
+              const next = new URLSearchParams(params);
+              if (option.key === "pages") next.delete("view");
+              else next.set("view", "list");
+              const query = next.toString();
+              router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+            }}
             className="rounded-full px-4 py-1.5 text-sm font-semibold text-muted hover:text-ink aria-pressed:bg-ink aria-pressed:text-paper"
           >
             {option.label}
@@ -34,11 +48,11 @@ export function FlyerView({ flyerId, pages, deals }: { flyerId: number; pages: F
         ))}
       </div>
       {view === "list" ? (
-        <FlyerDeals deals={deals} />
+        <FlyerDeals deals={deals} postal={postal} />
       ) : (
         <>
           <p className="mb-6 text-muted">Tap a deal on the page to see its price details.</p>
-          <FlyerPages flyerId={flyerId} pages={pages} deals={deals} />
+          <FlyerPages flyerId={flyerId} postal={postal} pages={pages} deals={deals} />
         </>
       )}
     </>

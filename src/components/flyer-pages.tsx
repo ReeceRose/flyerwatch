@@ -22,7 +22,17 @@ function percent(value: number, total: number): string {
   return `${(value / total) * 100}%`;
 }
 
-export function FlyerPages({ flyerId, pages, deals }: { flyerId: number; pages: FlyerPage[]; deals: Deal[] }) {
+export function FlyerPages({
+  flyerId,
+  postal,
+  pages,
+  deals,
+}: {
+  flyerId: number;
+  postal: string;
+  pages: FlyerPage[];
+  deals: Deal[];
+}) {
   const [open, setOpen] = useState<Deal | null>(null);
 
   if (pages.length === 0) {
@@ -41,7 +51,7 @@ export function FlyerPages({ flyerId, pages, deals }: { flyerId: number; pages: 
                 style={{ aspectRatio: `${rect.w} / ${rect.h}` }}
               >
                 <img
-                  src={regionUrl(flyerId, rect, PAGE_WIDTH)}
+                  src={regionUrl(flyerId, rect, PAGE_WIDTH, postal)}
                   alt={`Page ${page.page}`}
                   loading={page.page <= 1 ? "eager" : "lazy"}
                   decoding="async"
@@ -75,7 +85,7 @@ export function FlyerPages({ flyerId, pages, deals }: { flyerId: number; pages: 
           );
         })}
       </ol>
-      <DealDialog deal={open} onClose={() => setOpen(null)} />
+      <DealDialog deal={open} postal={postal} onClose={() => setOpen(null)} />
     </>
   );
 }

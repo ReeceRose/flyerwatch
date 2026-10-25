@@ -47,16 +47,32 @@ function pack(list: SharedList): Packed {
   };
 }
 
-function unpack(packed: Packed): SharedList {
+const str = (value: unknown): string | null => (typeof value === "string" ? value : null);
+const num = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+// Links can be edited by hand, so every field is checked before it's shown.
+function unpack(packed: Record<string, unknown>): SharedList {
   return {
     version: 1,
-    createdAt: packed.at,
-    stores: packed.s,
-    total: packed.t,
-    groups: packed.g.map((group) => ({
-      store: group.s,
-      items: group.i.map(([name, uses, deal, price, estimate]) => ({ name, for: uses, deal, price, estimate })),
-    })),
+    createdAt: str(packed.at) ?? "",
+    stores: strings(packed.s),
+    total: num(packed.t) ?? 0,
+    groups: list(packed.g).flatMap((raw) => {
+      if (!raw || typeof raw !== "object") return [];
+      const group = raw as Record<string, unknown>;
+      return {
+        store: str(group.s),
+        items: list(group.i).flatMap((item) => {
+          const [name, uses, deal, price, estimate] = list(item);
+          return typeof name === "string"
+            ? { name, for: strings(uses), deal: str(deal), price: str(price), estimate: num(estimate) }
+            : [];
+        }),
+      };
+    }),
   };
 }
 
@@ -73,9 +89,31 @@ function fromBase64Url(text: string): Uint8Array {
 
 type ByteStream = TransformStream<Uint8Array, Uint8Array>;
 
+// A real list is a few kilobytes. The cap stops a tiny link from unpacking
+// into something huge.
+const MAX_UNPACKED = 1_000_000;
+
 async function transform(bytes: Uint8Array, stream: ByteStream): Promise<Uint8Array> {
-  const body = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
-  return new Uint8Array(await new Response(body).arrayBuffer());
+  const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(stream).getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > MAX_UNPACKED) {
+      await reader.cancel();
+      throw new Error("Shared list is too big");
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
 }
 
 export async function encodeShare(list: SharedList): Promise<string> {
@@ -88,8 +126,10 @@ export async function decodeShare(hash: string): Promise<SharedList | null> {
   try {
     const decompress = new DecompressionStream("deflate-raw") as unknown as ByteStream;
     const bytes = await transform(fromBase64Url(hash.replace(/^#/, "")), decompress);
-    const packed = JSON.parse(new TextDecoder().decode(bytes)) as Packed;
-    return packed.v === 1 ? unpack(packed) : null;
+    const packed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (!packed || typeof packed !== "object") return null;
+    const fields = packed as Record<string, unknown>;
+    return fields.v === 1 ? unpack(fields) : null;
   } catch {
     return null;
   }

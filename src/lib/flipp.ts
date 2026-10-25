@@ -17,6 +17,7 @@ export type Flyer = {
   logoUrl: string | null;
   tilePath: string;
   resolutions: number[];
+  width: number;
   height: number;
 };
 
@@ -57,6 +58,7 @@ type RawFlyer = {
   merchant_logo?: string | null;
   path: string;
   resolutions: number[];
+  width: number;
   height: number;
 };
 
@@ -128,6 +130,7 @@ function toFlyer(raw: RawFlyer): Flyer {
     logoUrl: https(raw.merchant_logo),
     tilePath: raw.path,
     resolutions: raw.resolutions,
+    width: raw.width,
     height: raw.height,
   };
 }

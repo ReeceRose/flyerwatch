@@ -17,13 +17,36 @@ function text(value) {
   return trimmed || null;
 }
 
+const fresh = (stored) => stored && Date.now() - stored.at < CACHE_HOURS * 3600 * 1000;
+
+// Removes expired results so the cache doesn't fill local storage, which also
+// holds the pantry and shopping list. Runs once each time the popup opens.
+let pruned = null;
+export function pruneCache() {
+  pruned ??= chrome.storage.local
+    .get(null)
+    .then((all) => {
+      const expired = Object.keys(all).filter((key) => key.startsWith(CACHE_PREFIX) && !fresh(all[key]));
+      return expired.length > 0 ? chrome.storage.local.remove(expired) : undefined;
+    })
+    .catch(() => {
+      pruned = null;
+    });
+  return pruned;
+}
+
 async function cached(key, load) {
   const cacheKey = `${CACHE_PREFIX}${key}`;
   const stored = (await chrome.storage.local.get(cacheKey))[cacheKey];
-  if (stored && Date.now() - stored.at < CACHE_HOURS * 3600 * 1000) return stored.value;
+  if (fresh(stored)) return stored.value;
 
   const value = await load();
-  await chrome.storage.local.set({ [cacheKey]: { at: Date.now(), value } });
+  try {
+    await pruneCache();
+    await chrome.storage.local.set({ [cacheKey]: { at: Date.now(), value } });
+  } catch {
+    // Not caching a result is fine; the search still worked.
+  }
   return value;
 }
 
