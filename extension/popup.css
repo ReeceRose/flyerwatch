@@ -668,3 +668,20 @@ select {
 .connection .small-button {
   margin-top: 6px;
 }
+
+.credit {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.credit a {
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.credit a:hover {
+  color: var(--ink);
+}
