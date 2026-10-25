@@ -7,7 +7,7 @@ import { ShareDialog } from "@/components/shopping/share-dialog";
 import { StoreGroup } from "@/components/shopping/store-group";
 import { type PlanChoice, TripPlans } from "@/components/shopping/trip-plans";
 import { groupByPlan, planItems } from "@/lib/shopping/groups";
-import { buildItems, type ListItem, pantryMatch, planTrips } from "@/lib/shopping/shared";
+import { buildItems, EMPTY_LIST, type ListItem, pantryMatch, planTrips } from "@/lib/shopping/shared";
 import { updateList, updatePantry, updateSettings, useShopping } from "@/lib/shopping/store";
 import { useDeals } from "@/lib/shopping/use-deals";
 
@@ -66,11 +66,14 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
   const loading = searchable.some((item) => (results[item.term]?.status ?? "loading") === "loading");
 
   const plans = useMemo(
-    () => (loading ? { yours: null, anywhere: null } : planTrips(planItems(searchable, results), settings)),
-    [loading, searchable, results, settings],
+    () => (loading ? { yours: null, anywhere: null } : planTrips(planItems(searchable, results, list.notAt), settings)),
+    [loading, searchable, results, list.notAt, settings],
   );
   const plan = choice === "yours" ? (plans.yours ?? plans.anywhere) : (plans.anywhere ?? plans.yours);
-  const groups = useMemo(() => groupByPlan(searchable, results, plan), [searchable, results, plan]);
+  const groups = useMemo(
+    () => groupByPlan(searchable, results, plan, list.notAt),
+    [searchable, results, plan, list.notAt],
+  );
   const checked = useMemo(() => new Set(list.checked), [list.checked]);
 
   const toggle = (key: string) =>
@@ -87,6 +90,16 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
     );
   const restoreItem = (item: ListItem) =>
     updateList((current) => ({ ...current, removed: current.removed.filter((key) => key !== item.key) }));
+  const skipStore = (item: ListItem, store: string) =>
+    updateList((current) => ({
+      ...current,
+      notAt: { ...current.notAt, [item.key]: [...new Set([...(current.notAt[item.key] ?? []), store])] },
+    }));
+  const allowStores = (item: ListItem) =>
+    updateList((current) => {
+      const { [item.key]: _, ...notAt } = current.notAt;
+      return { ...current, notAt };
+    });
   const addToPantry = (item: ListItem) => updatePantry([...pantry, item.term]);
   const removeFromPantry = (item: ListItem) => {
     const entry = pantryMatch(item.term, pantry);
@@ -126,7 +139,7 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
             </button>
             <button
               type="button"
-              onClick={() => updateList(() => ({ recipes: [], extras: [], checked: [], removed: [] }))}
+              onClick={() => updateList(() => EMPTY_LIST)}
               className="rounded-xl px-3 py-2 font-semibold text-muted hover:bg-shelf hover:text-ink"
             >
               Clear list
@@ -167,7 +180,10 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
                 key={group.store ?? "anywhere"}
                 group={group}
                 checked={checked}
+                notAt={list.notAt}
                 onToggle={toggle}
+                onSkipStore={skipStore}
+                onAllowStores={allowStores}
                 onRemove={removeItem}
                 onPantry={addToPantry}
               />

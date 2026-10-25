@@ -5,6 +5,8 @@
 export type SharedItem = {
   name: string;
   for: string[];
+  /** Amounts and recipes, e.g. "4 cups for Potato Soup". Missing from older links. */
+  need: string | null;
   deal: string | null;
   price: string | null;
   estimate: number | null;
@@ -25,7 +27,7 @@ type Packed = {
   at: string;
   s: string[];
   t: number;
-  g: { s: string | null; i: [string, string[], string | null, string | null, number | null][] }[];
+  g: { s: string | null; i: [string, string[], string | null, string | null, number | null, string | null][] }[];
 };
 
 function pack(list: SharedList): Packed {
@@ -42,6 +44,7 @@ function pack(list: SharedList): Packed {
         item.deal,
         item.price,
         item.estimate === null ? null : Math.round(item.estimate * 100) / 100,
+        item.need,
       ]),
     })),
   };
@@ -66,9 +69,9 @@ function unpack(packed: Record<string, unknown>): SharedList {
       return {
         store: str(group.s),
         items: list(group.i).flatMap((item) => {
-          const [name, uses, deal, price, estimate] = list(item);
+          const [name, uses, deal, price, estimate, need] = list(item);
           return typeof name === "string"
-            ? { name, for: strings(uses), deal: str(deal), price: str(price), estimate: num(estimate) }
+            ? { name, for: strings(uses), need: str(need), deal: str(deal), price: str(price), estimate: num(estimate) }
             : [];
         }),
       };

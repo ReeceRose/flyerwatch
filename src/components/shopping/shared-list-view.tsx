@@ -21,7 +21,11 @@ function SharedRow({ item, checked, onToggle }: { item: SharedItem; checked: boo
         <span className={`min-w-0 ${checked ? "opacity-45" : ""}`}>
           <span className={`block text-lg font-semibold capitalize ${checked ? "line-through" : ""}`}>{item.name}</span>
           {item.deal ? <span className={`block text-sm ${item.price ? "" : "text-muted"}`}>{item.deal}</span> : null}
-          {item.for.length > 0 ? <span className="block text-sm text-muted">For {item.for.join(", ")}</span> : null}
+          {item.need ? (
+            <span className="block text-sm text-muted">{item.need}</span>
+          ) : item.for.length > 0 ? (
+            <span className="block text-sm text-muted">For {item.for.join(", ")}</span>
+          ) : null}
         </span>
         <span className="max-w-[38%] text-right">
           {item.price ? <span className="block whitespace-nowrap font-bold">{item.price}</span> : null}

@@ -5,23 +5,29 @@ import { PriceTag } from "@/components/price-tag";
 import { tidyName } from "@/lib/format";
 import { formatMoney } from "@/lib/price";
 import { dealPriceText, type GroupItem, type StoreGroup as Group } from "@/lib/shopping/groups";
-import type { ListItem } from "@/lib/shopping/shared";
+import { describeNeed, type ListItem } from "@/lib/shopping/shared";
 
 type ItemActions = {
   onRemove: (item: ListItem) => void;
   onPantry: (item: ListItem) => void;
+  onSkipStore: (item: ListItem, store: string) => void;
+  onAllowStores: (item: ListItem) => void;
 };
 
 function ItemRow({
   entry,
   checked,
+  notAt,
   onToggle,
   onRemove,
   onPantry,
-}: { entry: GroupItem; checked: boolean; onToggle: () => void } & ItemActions) {
+  onSkipStore,
+  onAllowStores,
+}: { entry: GroupItem; checked: boolean; notAt: string[]; onToggle: () => void } & ItemActions) {
   const id = useId();
   const { item, deal, estimate, elsewhere, status } = entry;
   const label = item.term || item.uses[0]?.line || item.key;
+  const need = describeNeed(item);
 
   return (
     <li className="grid grid-cols-[auto_1fr_auto] items-start gap-4 py-4 print:break-inside-avoid print:py-1.5">
@@ -36,9 +42,7 @@ function ItemRow({
         <label htmlFor={id} className={`text-[17px] font-semibold capitalize ${checked ? "line-through" : ""}`}>
           {label}
         </label>
-        {item.sources.length > 0 ? (
-          <p className="text-sm text-muted">For {item.sources.join(", ")}</p>
-        ) : null}
+        {need ? <p className="text-sm text-muted">{need}</p> : null}
         {deal ? (
           <p className="mt-1 text-sm">
             {deal.tier > 0 ? <span className="font-semibold">Similar: </span> : null}
@@ -54,7 +58,29 @@ function ItemRow({
         ) : (
           <p className="mt-1 text-sm text-muted">Not on sale this week</p>
         )}
-        <div className="mt-1.5 flex gap-4 text-sm print:hidden">
+        {notAt.length > 0 ? (
+          <p className="mt-1 text-sm text-muted print:hidden">
+            Not buying at {notAt.join(", ")}.{" "}
+            <button
+              type="button"
+              onClick={() => onAllowStores(item)}
+              className="font-semibold underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Undo
+            </button>
+          </p>
+        ) : null}
+        <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
+          {deal ? (
+            <button
+              type="button"
+              onClick={() => onSkipStore(item, deal.merchant)}
+              title={`Don't buy this at ${deal.merchant}`}
+              className="font-semibold text-muted underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Not at {deal.merchant}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onPantry(item)}
@@ -93,12 +119,13 @@ function ItemRow({
 export function StoreGroup({
   group,
   checked,
+  notAt,
   onToggle,
-  onRemove,
-  onPantry,
+  ...actions
 }: {
   group: Group;
   checked: Set<string>;
+  notAt: Record<string, string[]>;
   onToggle: (key: string) => void;
 } & ItemActions) {
   if (group.items.length === 0) return null;
@@ -123,9 +150,9 @@ export function StoreGroup({
             key={entry.item.key}
             entry={entry}
             checked={checked.has(entry.item.key)}
+            notAt={notAt[entry.item.key] ?? []}
             onToggle={() => onToggle(entry.item.key)}
-            onRemove={onRemove}
-            onPantry={onPantry}
+            {...actions}
           />
         ))}
       </ul>

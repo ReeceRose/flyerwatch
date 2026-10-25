@@ -13,7 +13,7 @@ const UNIT_NAMES = [
   "packages", "package", "handfuls", "handful", "bunches", "bunch", "cloves", "clove",
   "ounces", "ounce", "pounds", "pound", "quarts", "quart", "liters", "liter", "litres",
   "litre", "pinches", "pinch", "dashes", "dash", "slices", "slice", "sticks", "stick",
-  "sprigs", "sprig", "grams", "gram", "pints", "pint", "cans", "can", "cups", "cup",
+  "sprigs", "sprig", "strips", "strip", "grams", "gram", "pints", "pint", "cans", "can", "cups", "cup",
   "heads", "head", "jars", "jar", "bags", "bag", "boxes", "box", "pieces", "piece",
   "tbsp", "tbs", "tbl", "tsp", "fl oz", "lbs", "lb", "oz", "kg", "ml", "qt", "pt", "g", "l",
 ];
@@ -128,6 +128,8 @@ export function toSearchTerm(line) {
   let rest = normalize(line).replace(LIST_MARKER, "");
 
   const amount = stripAmounts(rest);
+  // What the recipe asks for, as written ("4 cups", "1 (14 oz) can").
+  const amountText = rest.slice(0, rest.length - amount.rest.length).trim().replace(/\s+of$/i, "") || null;
   rest = amount.rest;
 
   const cleaned = rest
@@ -156,5 +158,6 @@ export function toSearchTerm(line) {
     skipped: term.length < 2 || staple,
     quantity: amount.quantity,
     unit: amount.unit,
+    amountText,
   };
 }

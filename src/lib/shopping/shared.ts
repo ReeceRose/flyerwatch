@@ -18,7 +18,13 @@ export type ListRecipe = {
   addedAt: string;
 };
 
-export type ShoppingList = { recipes: ListRecipe[]; extras: string[]; checked: string[]; removed: string[] };
+export type ShoppingList = {
+  recipes: ListRecipe[];
+  extras: string[];
+  checked: string[];
+  removed: string[];
+  notAt: Record<string, string[]>;
+};
 
 export type RankedDeal = Deal & { tier: number };
 export type Amount = { quantity: number | null; unit: string | null };
@@ -28,7 +34,7 @@ export type ListItem = {
   key: string;
   term: string;
   skipped: SkipReason | null;
-  uses: { source: string | null; line: string }[];
+  uses: { source: string | null; line: string; amount: string | null }[];
   sources: string[];
   amount: Amount;
 };
@@ -52,6 +58,7 @@ export const normalizeTrip: (trip: Partial<Trip> | null) => Trip = state.normali
 export const normalizeList: (list: Partial<ShoppingList> | null) => ShoppingList = state.normalizeList;
 
 export const buildItems: (recipes: ListRecipe[], extras: string[], pantry: string[]) => ListItem[] = list.buildItems;
+export const describeNeed: (item: ListItem) => string | null = list.describeNeed;
 export const rankDeals: (deals: Deal[], term: string, groceryFlyerIds: Set<number> | null) => RankedDeal[] =
   match.rankDeals;
 export const cleanPantry: (items: string[]) => string[] = pantry.cleanPantry;

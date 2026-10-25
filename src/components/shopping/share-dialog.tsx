@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { tidyName } from "@/lib/format";
 import { dealPriceText, type StoreGroup } from "@/lib/shopping/groups";
 import { encodeShare, type SharedList } from "@/lib/shopping/share";
+import { describeNeed } from "@/lib/shopping/shared";
 
 function toShared(groups: StoreGroup[], stores: string[]): SharedList {
   return {
@@ -19,6 +20,7 @@ function toShared(groups: StoreGroup[], stores: string[]): SharedList {
         items: group.items.map(({ item, deal, estimate, elsewhere }) => ({
           name: item.term || item.uses[0]?.line || item.key,
           for: item.sources,
+          need: describeNeed(item),
           deal: deal
             ? tidyName(deal.name)
             : elsewhere

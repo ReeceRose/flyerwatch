@@ -4,7 +4,8 @@ export const DEFAULT_TRIP = { maxStores: 2, compareAnywhere: true, includeSimila
 
 export const DEFAULT_SETTINGS = { postal: null, stores: [], trip: DEFAULT_TRIP };
 
-export const EMPTY_LIST = { recipes: [], extras: [], checked: [], removed: [] };
+// `notAt` maps an item to the stores you don't want to buy it at.
+export const EMPTY_LIST = { recipes: [], extras: [], checked: [], removed: [], notAt: {} };
 
 export function normalizeTrip(trip) {
   const maxStores = Number(trip?.maxStores);
@@ -21,7 +22,16 @@ export function normalizeList(list) {
     extras: Array.isArray(list?.extras) ? list.extras : [],
     checked: Array.isArray(list?.checked) ? list.checked : [],
     removed: Array.isArray(list?.removed) ? list.removed : [],
+    notAt: normalizeNotAt(list?.notAt),
   };
+}
+
+function normalizeNotAt(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const entries = Object.entries(value)
+    .map(([key, stores]) => [key, Array.isArray(stores) ? stores.filter((store) => typeof store === "string") : []])
+    .filter(([, stores]) => stores.length > 0);
+  return Object.fromEntries(entries);
 }
 
 export function recipeId(url) {
