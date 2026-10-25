@@ -11,6 +11,7 @@ pnpm dev
 
 - `/` searches every nearby flyer and sorts by lowest price, or by price per pound.
 - `/flyers` lists this week's grocery flyers; open one to see and filter every deal.
+- `/tour` shows what the site and extension do, with screenshots.
 - The postal code (default N2G 1A1, Kitchener) is stored in a cookie. Change it from the header.
 
 Flipp responses are cached for an hour with `"use cache"` (`src/lib/flipp.ts`).
@@ -39,7 +40,7 @@ Ingredient parsing, matching, price estimates and the trip planner are plain Jav
 
 | Path | What's there |
 | --- | --- |
-| `src/app/` | Pages (`/`, `/flyers`, `/flyers/[id]`, `/list`, `/share`) and API routes used by the list and extension |
+| `src/app/` | Pages (`/`, `/flyers`, `/flyers/[id]`, `/list`, `/share`, `/tour`) and API routes used by the list and extension |
 | `src/components/` | UI components; `shopping/` holds the list, trip plans and share dialog |
 | `src/lib/` | Flipp client (`flipp.ts`), postal code cookie, flyer image tiles (`tiles.ts`, uses `sharp`), shopping list state |
 | `src/shared/` | Plain JS shared with the extension: ingredient parsing, matching, prices, trip planner |

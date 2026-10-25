@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/", label: "Compare prices" },
   { href: "/flyers", label: "Flyers" },
   { href: "/list", label: "Shopping list" },
+  { href: "/tour", label: "Tour" },
 ];
 
 export function NavLinks() {
@@ -19,7 +20,7 @@ export function NavLinksFallback() {
 
 function NavList({ pathname }: { pathname: string | null }) {
   return (
-    <nav className="flex gap-1 text-[15px] font-medium">
+    <nav className="flex flex-wrap gap-1 text-[15px] font-medium">
       {LINKS.map((link) => {
         const active =
           pathname !== null && (link.href === "/" ? pathname === "/" : pathname.startsWith(link.href));
@@ -28,7 +29,7 @@ function NavList({ pathname }: { pathname: string | null }) {
             key={link.href}
             href={link.href}
             aria-current={active ? "page" : undefined}
-            className="rounded-full px-3 py-1.5 text-muted transition-colors hover:text-ink aria-[current=page]:bg-ink aria-[current=page]:text-paper"
+            className="rounded-full px-3 py-1.5 whitespace-nowrap text-muted transition-colors hover:text-ink aria-[current=page]:bg-ink aria-[current=page]:text-paper"
           >
             {link.label}
           </Link>
