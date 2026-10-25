@@ -60,6 +60,9 @@ input {
 }
 
 .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 20px;
   font-weight: 900;
   font-stretch: 62%;

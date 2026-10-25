@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { Logo } from "@/components/logo";
 import { NavLinks, NavLinksFallback } from "@/components/nav-links";
 import { PostalForm } from "@/components/postal-form";
 import { PostalSync } from "@/components/postal-sync";
@@ -19,7 +20,11 @@ async function PostalControl() {
 export function SiteHeader() {
   return (
     <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-8 gap-y-3 px-5 py-5 sm:px-8 print:hidden">
-      <Link href="/" className="text-2xl font-black tracking-tight font-stretch-extra-condensed">
+      <Link
+        href="/"
+        className="flex items-center gap-2 text-2xl font-black tracking-tight font-stretch-extra-condensed"
+      >
+        <Logo className="size-8" />
         Flyerwatch
       </Link>
       <Suspense fallback={<NavLinksFallback />}>

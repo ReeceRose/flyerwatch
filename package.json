@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "sync:extension": "node scripts/sync-extension.mjs"
+    "sync:extension": "node scripts/sync-extension.mjs",
+    "build:icons": "node scripts/build-icons.mjs"
   },
   "dependencies": {
     "next": "16.4.3",

@@ -1,4 +1,4 @@
-# Flyerwatch
+# <img src="brand/logo.svg" alt="" width="36" height="36" align="top" /> Flyerwatch
 
 Compare this week's grocery flyer prices near you. Data comes from Flipp's public flyer API (unofficial and undocumented, so it may change).
 
@@ -59,3 +59,7 @@ pnpm sync:extension    # if you touched src/shared/
 ## License
 
 [MIT](LICENSE)
+
+## Logo
+
+`brand/logo.svg` is the source for every icon: the favicon, `icon.svg`, the Apple touch icon, the web manifest icons and the extension's icons. After you change it, run `pnpm build:icons` to regenerate them all, and update the inline copy in `src/components/logo.tsx`.
