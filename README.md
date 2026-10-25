@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flyerwatch
 
-## Getting Started
-
-First, run the development server:
+Compare this week's grocery flyer prices near you. Data comes from Flipp's public flyer API (unofficial and undocumented, so it may change).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `/` searches every nearby flyer and sorts by lowest price, or by price per pound.
+- `/flyers` lists this week's grocery flyers; open one to see and filter every deal.
+- The postal code (default N2G 1A1, Kitchener) is stored in a cookie. Change it from the header.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Flipp responses are cached for an hour with `"use cache"` (`src/lib/flipp.ts`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Shopping list
 
-## Learn More
+`/list` combines the recipes you add from the extension into one list:
 
-To learn more about Next.js, take a look at the following resources:
+- Picks the best stores to visit (up to 1, 2 or 3), once with your stores and once with any store nearby, with a rough total at sale prices.
+- Groups items by store, with checkboxes, print styles, and **Send to phone**: a QR code and link that carry the whole list after the `#`, so nothing is stored on the server.
+- Settings, pantry and list live in the extension when it's connected, otherwise in this browser's local storage (`src/lib/shopping/store.ts`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Ingredient parsing, matching, price estimates and the trip planner are plain JavaScript in `src/shared/`, used by both the site and the extension. After editing them, run `pnpm sync:extension` to copy them into `extension/lib/shared/`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Chrome extension
 
-## Deploy on Vercel
+`extension/` holds a Chrome extension that checks the ingredients of any recipe you open against this week's flyers. It isn't in the Chrome Web Store yet, so install it by hand:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Open `chrome://extensions` and turn on **Developer mode**.
+2. Click **Load unpacked** and pick the `extension` folder.
+3. Pin it, open a recipe, and click it (or press Alt+Shift+F).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[docs/extension-install.md](docs/extension-install.md) covers connecting it to the site, updating, sharing a zip, and troubleshooting. [extension/README.md](extension/README.md) explains how it works.
+
+## Project layout
+
+| Path | What's there |
+| --- | --- |
+| `src/app/` | Pages (`/`, `/flyers`, `/flyers/[id]`, `/list`, `/share`) and API routes used by the list and extension |
+| `src/components/` | UI components; `shopping/` holds the list, trip plans and share dialog |
+| `src/lib/` | Flipp client (`flipp.ts`), postal code cookie, flyer image tiles (`tiles.ts`, uses `sharp`), shopping list state |
+| `src/shared/` | Plain JS shared with the extension: ingredient parsing, matching, prices, trip planner |
+| `public/sw.js` | Service worker that keeps a shared list available offline under `/share` |
+| `extension/` | The Chrome extension (Manifest V3, no build step) |
+| `scripts/sync-extension.mjs` | Copies `src/shared/` into `extension/lib/shared/` |
+
+## Checks
+
+There are no tests yet. Before committing, run:
+
+```bash
+pnpm build             # type-checks and builds
+pnpm sync:extension    # if you touched src/shared/
+```

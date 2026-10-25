@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Flyerwatch: Recipe deals",
+  "version": "0.2.0",
+  "description": "See which ingredients in the recipe you're reading are on sale in this week's grocery flyers near you.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://backflipp.wishabi.com/*"
+  ],
+  "action": {
+    "default_title": "Find this recipe's ingredients on sale",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Find this recipe's ingredients on sale"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
