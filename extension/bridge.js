@@ -4,7 +4,9 @@
 (() => {
   // A bridge left over from before the extension was reloaded or updated can
   // no longer reach chrome.storage, so it steps aside for this one.
-  window.__flyerwatchBridge?.stop();
+  // The first version set the flag to `true` rather than an object, so check.
+  const previous = window.__flyerwatchBridge;
+  if (typeof previous?.stop === "function") previous.stop();
 
   const PAGE = "flyerwatch-page";
   const EXTENSION = "flyerwatch-extension";
