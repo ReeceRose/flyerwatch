@@ -7,7 +7,7 @@ import { ShareDialog } from "@/components/shopping/share-dialog";
 import { StoreGroup } from "@/components/shopping/store-group";
 import { type PlanChoice, TripPlans } from "@/components/shopping/trip-plans";
 import { groupByPlan, planItems } from "@/lib/shopping/groups";
-import { buildItems, EMPTY_LIST, type ListItem, pantryMatch, planTrips } from "@/lib/shopping/shared";
+import { buildItems, clearWrong, EMPTY_LIST, type ListItem, markWrong, pantryMatch, planTrips } from "@/lib/shopping/shared";
 import { updateList, updatePantry, updateSettings, useShopping } from "@/lib/shopping/store";
 import { useDeals } from "@/lib/shopping/use-deals";
 
@@ -65,14 +65,15 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
   const results = useDeals(shop.ready ? postal : null, terms);
   const loading = searchable.some((item) => (results[item.term]?.status ?? "loading") === "loading");
 
+  const skips = useMemo(() => ({ notAt: list.notAt, wrong: list.wrong }), [list.notAt, list.wrong]);
   const plans = useMemo(
-    () => (loading ? { yours: null, anywhere: null } : planTrips(planItems(searchable, results, list.notAt), settings)),
-    [loading, searchable, results, list.notAt, settings],
+    () => (loading ? { yours: null, anywhere: null } : planTrips(planItems(searchable, results, skips), settings)),
+    [loading, searchable, results, skips, settings],
   );
   const plan = choice === "yours" ? (plans.yours ?? plans.anywhere) : (plans.anywhere ?? plans.yours);
   const groups = useMemo(
-    () => groupByPlan(searchable, results, plan, list.notAt),
-    [searchable, results, plan, list.notAt],
+    () => groupByPlan(searchable, results, plan, skips),
+    [searchable, results, plan, skips],
   );
   const checked = useMemo(() => new Set(list.checked), [list.checked]);
 
@@ -100,6 +101,8 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
       const { [item.key]: _, ...notAt } = current.notAt;
       return { ...current, notAt };
     });
+  const flagWrong = (item: ListItem, name: string) => updateList((current) => markWrong(current, item.term, name));
+  const unflagWrong = (item: ListItem) => updateList((current) => clearWrong(current, item.term));
   const addToPantry = (item: ListItem) => updatePantry([...pantry, item.term]);
   const removeFromPantry = (item: ListItem) => {
     const entry = pantryMatch(item.term, pantry);
@@ -181,7 +184,10 @@ export function ShoppingList({ serverPostal }: { serverPostal: string }) {
                 group={group}
                 checked={checked}
                 notAt={list.notAt}
+                wrong={list.wrong}
                 onToggle={toggle}
+                onWrong={flagWrong}
+                onUndoWrong={unflagWrong}
                 onSkipStore={skipStore}
                 onAllowStores={allowStores}
                 onRemove={removeItem}

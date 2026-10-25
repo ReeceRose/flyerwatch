@@ -12,18 +12,23 @@ type ItemActions = {
   onPantry: (item: ListItem) => void;
   onSkipStore: (item: ListItem, store: string) => void;
   onAllowStores: (item: ListItem) => void;
+  onWrong: (item: ListItem, name: string) => void;
+  onUndoWrong: (item: ListItem) => void;
 };
 
 function ItemRow({
   entry,
   checked,
   notAt,
+  wrong,
   onToggle,
   onRemove,
   onPantry,
   onSkipStore,
   onAllowStores,
-}: { entry: GroupItem; checked: boolean; notAt: string[]; onToggle: () => void } & ItemActions) {
+  onWrong,
+  onUndoWrong,
+}: { entry: GroupItem; checked: boolean; notAt: string[]; wrong: number; onToggle: () => void } & ItemActions) {
   const id = useId();
   const { item, deal, estimate, elsewhere, status } = entry;
   const label = item.term || item.uses[0]?.line || item.key;
@@ -70,7 +75,29 @@ function ItemRow({
             </button>
           </p>
         ) : null}
+        {wrong > 0 ? (
+          <p className="mt-1 text-sm text-muted print:hidden">
+            Hiding {wrong} wrong {wrong === 1 ? "item" : "items"}.{" "}
+            <button
+              type="button"
+              onClick={() => onUndoWrong(item)}
+              className="font-semibold underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Undo
+            </button>
+          </p>
+        ) : null}
         <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-sm print:hidden">
+          {deal ? (
+            <button
+              type="button"
+              onClick={() => onWrong(item, deal.name)}
+              title={`${tidyName(deal.name)} isn't what you need`}
+              className="font-semibold text-muted underline decoration-rule underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Wrong item
+            </button>
+          ) : null}
           {deal ? (
             <button
               type="button"
@@ -120,12 +147,14 @@ export function StoreGroup({
   group,
   checked,
   notAt,
+  wrong,
   onToggle,
   ...actions
 }: {
   group: Group;
   checked: Set<string>;
   notAt: Record<string, string[]>;
+  wrong: Record<string, string[]>;
   onToggle: (key: string) => void;
 } & ItemActions) {
   if (group.items.length === 0) return null;
@@ -151,6 +180,7 @@ export function StoreGroup({
             entry={entry}
             checked={checked.has(entry.item.key)}
             notAt={notAt[entry.item.key] ?? []}
+            wrong={wrong[entry.item.term]?.length ?? 0}
             onToggle={() => onToggle(entry.item.key)}
             {...actions}
           />

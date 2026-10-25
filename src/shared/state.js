@@ -4,8 +4,10 @@ export const DEFAULT_TRIP = { maxStores: 2, compareAnywhere: true, includeSimila
 
 export const DEFAULT_SETTINGS = { postal: null, stores: [], trip: DEFAULT_TRIP };
 
-// `notAt` maps an item to the stores you don't want to buy it at.
-export const EMPTY_LIST = { recipes: [], extras: [], checked: [], removed: [], notAt: {} };
+// `notAt` maps an item to the stores you don't want to buy it at. `wrong` maps
+// a search to flyer items it found that aren't what you meant ("peameal bacon"
+// when you searched for bacon).
+export const EMPTY_LIST = { recipes: [], extras: [], checked: [], removed: [], notAt: {}, wrong: {} };
 
 export function normalizeTrip(trip) {
   const maxStores = Number(trip?.maxStores);
@@ -22,16 +24,35 @@ export function normalizeList(list) {
     extras: Array.isArray(list?.extras) ? list.extras : [],
     checked: Array.isArray(list?.checked) ? list.checked : [],
     removed: Array.isArray(list?.removed) ? list.removed : [],
-    notAt: normalizeNotAt(list?.notAt),
+    notAt: normalizeLists(list?.notAt),
+    wrong: normalizeLists(list?.wrong),
   };
 }
 
-function normalizeNotAt(value) {
+function normalizeLists(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const entries = Object.entries(value)
     .map(([key, stores]) => [key, Array.isArray(stores) ? stores.filter((store) => typeof store === "string") : []])
     .filter(([, stores]) => stores.length > 0);
   return Object.fromEntries(entries);
+}
+
+/** Remembers that a flyer item isn't what a search was for. */
+export function markWrong(list, term, name) {
+  const names = list.wrong?.[term] ?? [];
+  return { ...list, wrong: { ...list.wrong, [term]: [...new Set([...names, name])] } };
+}
+
+/** Brings back every flyer item marked wrong for a search. */
+export function clearWrong(list, term) {
+  const { [term]: _, ...wrong } = list.wrong ?? {};
+  return { ...list, wrong };
+}
+
+/** Deals for a search, leaving out the ones marked as the wrong item. */
+export function withoutWrong(deals, wrong, term) {
+  const names = wrong?.[term];
+  return names?.length ? deals.filter((deal) => !names.includes(deal.name)) : deals;
 }
 
 export function recipeId(url) {

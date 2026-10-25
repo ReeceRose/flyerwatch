@@ -379,6 +379,23 @@ button.deal:hover .deal-name {
   margin-top: 8px;
 }
 
+/* Lines up under the deal's name, past the thumbnail. */
+.wrong {
+  display: block;
+  margin: 4px 0 0 62px;
+  font-size: 11px;
+}
+
+.deal-item-compact .wrong {
+  margin-left: 46px;
+}
+
+.hidden-wrong {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .others {
   padding-left: 12px;
   border-left: 2px solid var(--rule);

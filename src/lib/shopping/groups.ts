@@ -7,6 +7,8 @@ import {
   type Plan,
   type PlanItem,
   type RankedDeal,
+  type ShoppingList,
+  withoutWrong,
 } from "@/lib/shopping/shared";
 
 export type GroupItem = {
@@ -19,18 +21,19 @@ export type GroupItem = {
 
 export type StoreGroup = { store: string | null; items: GroupItem[]; subtotal: number };
 
-type NotAt = Record<string, string[]>;
+type Skips = Pick<ShoppingList, "notAt" | "wrong">;
 
-/** An item's deals, leaving out stores you said not to buy it at. */
-function dealsFor(item: ListItem, result: DealResult, notAt: NotAt): RankedDeal[] {
+/** An item's deals, leaving out stores you said not to buy it at and items marked wrong. */
+function dealsFor(item: ListItem, result: DealResult, { notAt, wrong }: Skips): RankedDeal[] {
   const skip = notAt[item.key];
-  return skip ? result.deals.filter((deal) => !skip.includes(deal.merchant)) : result.deals;
+  const deals = withoutWrong(result.deals, wrong, item.term);
+  return skip ? deals.filter((deal) => !skip.includes(deal.merchant)) : deals;
 }
 
-export function planItems(items: ListItem[], results: Record<string, DealResult>, notAt: NotAt): PlanItem[] {
+export function planItems(items: ListItem[], results: Record<string, DealResult>, skips: Skips): PlanItem[] {
   return items
     .filter((item) => results[item.term]?.status === "ready")
-    .map((item) => ({ key: item.key, deals: dealsFor(item, results[item.term], notAt), amount: item.amount }));
+    .map((item) => ({ key: item.key, deals: dealsFor(item, results[item.term], skips), amount: item.amount }));
 }
 
 /** Items grouped by the store the plan sends them to; everything else goes in a final group. */
@@ -38,7 +41,7 @@ export function groupByPlan(
   items: ListItem[],
   results: Record<string, DealResult>,
   plan: Plan | null,
-  notAt: NotAt,
+  skips: Skips,
 ): StoreGroup[] {
   const stores = plan?.stores ?? [];
   const groups = new Map<string | null, GroupItem[]>();
@@ -48,7 +51,7 @@ export function groupByPlan(
   for (const item of items) {
     const result = results[item.term] ?? { status: "loading", deals: [] };
     const deal = plan?.assignments[item.key] ?? null;
-    const elsewhere = deal ? null : (dealsFor(item, result, notAt).find((d) => d.tier === 0 && !stores.includes(d.merchant)) ?? null);
+    const elsewhere = deal ? null : (dealsFor(item, result, skips).find((d) => d.tier === 0 && !stores.includes(d.merchant)) ?? null);
     groups.get(deal ? deal.merchant : null)?.push({
       item,
       status: result.status,

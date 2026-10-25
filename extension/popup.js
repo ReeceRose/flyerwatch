@@ -7,7 +7,7 @@ import { rankDeals, storeCoverage } from "./lib/shared/match.js";
 import { pantryMatch } from "./lib/shared/pantry.js";
 import { combineAmounts, planTrips } from "./lib/shared/planner.js";
 import { formatMoney, multiBuyCount, pricePerLb, unitLabel } from "./lib/shared/price.js";
-import { addRecipe, recipeId } from "./lib/shared/state.js";
+import { addRecipe, clearWrong, markWrong, recipeId, withoutWrong } from "./lib/shared/state.js";
 import { loadList, loadPantry, loadSettings, originPattern, saveList, savePantry } from "./lib/storage.js";
 import { connectSettings, renderSettings, renderSetup } from "./settings-view.js";
 
@@ -18,6 +18,7 @@ const near = document.getElementById("near");
 const state = {
   settings: null,
   pantry: [],
+  wrong: {},
   recipe: null,
   rows: [],
   groceryIds: new Set(),
@@ -60,11 +61,11 @@ function openDeal(deal) {
   chrome.tabs.create({ url: `${base}/flyers/${deal.flyerId}${postal}` });
 }
 
-function dealCard(deal, { compact = false } = {}) {
+function dealCard(deal, { compact = false, row = null } = {}) {
   const perLb = pricePerLb(deal);
   const until = formatDay(deal.validTo);
   const linked = Boolean(state.settings.flyerwatchUrl);
-  return h(
+  const card = h(
     linked ? "button" : "div",
     {
       class: `deal${compact ? " deal-compact" : ""}`,
@@ -88,6 +89,22 @@ function dealCard(deal, { compact = false } = {}) {
       deal.saleStory ? h("span", { class: "sale" }, deal.saleStory) : null,
     ),
     priceTag(deal),
+  );
+  if (!row) return card;
+  return h(
+    "div",
+    { class: `deal-item${compact ? " deal-item-compact" : ""}` },
+    card,
+    h(
+      "button",
+      {
+        type: "button",
+        class: "link wrong",
+        title: `${tidyName(deal.name)} isn't what you need. Hide it from this search.`,
+        onclick: () => flagWrong(row, deal),
+      },
+      "Wrong item",
+    ),
   );
 }
 
@@ -191,7 +208,7 @@ function rowView(row, index) {
     const allowed = storesInFilter();
     const inFilter = allowed ? row.deals.filter((deal) => allowed.has(deal.merchant)) : row.deals;
     if (inFilter.length > 0) {
-      parts.push(dealCard(inFilter[0]));
+      parts.push(dealCard(inFilter[0], { row }));
       const rest = inFilter.slice(1, 6);
       if (rest.length > 0) {
         const open = state.expanded.has(index);
@@ -202,17 +219,28 @@ function rowView(row, index) {
             open ? "Hide other deals" : `${rest.length} more ${rest.length === 1 ? "deal" : "deals"}`,
           ),
         );
-        if (open) parts.push(h("div", { class: "others" }, rest.map((deal) => dealCard(deal, { compact: true }))));
+        if (open) parts.push(h("div", { class: "others" }, rest.map((deal) => dealCard(deal, { compact: true, row }))));
       }
     } else if (row.deals.some((deal) => deal.tier === 0)) {
       const elsewhere = row.deals.find((deal) => deal.tier === 0);
       parts.push(
         h("p", { class: "empty" }, state.filter === "mine" ? "Not on sale at your stores." : `Not on sale at ${state.filter}.`),
         h("p", { class: "elsewhere" }, "Cheapest elsewhere:"),
-        dealCard(elsewhere, { compact: true }),
+        dealCard(elsewhere, { compact: true, row }),
       );
     } else {
       parts.push(h("p", { class: "empty" }, "Not in any flyer this week."));
+    }
+    const hidden = state.wrong[row.term]?.length ?? 0;
+    if (hidden > 0) {
+      parts.push(
+        h(
+          "p",
+          { class: "hidden-wrong" },
+          `Hiding ${hidden} wrong ${hidden === 1 ? "item" : "items"}. `,
+          h("button", { type: "button", class: "link", onclick: () => unflagWrong(index) }, "Undo"),
+        ),
+      );
     }
   }
 
@@ -304,6 +332,29 @@ async function removeFromPantry(index) {
   const match = pantryMatch(state.rows[index].term, state.pantry);
   state.pantry = await savePantry(state.pantry.filter((item) => item !== match));
   renderRecipe();
+}
+
+// The list is read fresh so a change made on the site in the meantime isn't lost.
+async function saveWrong(change) {
+  const list = change(await loadList());
+  await saveList(list);
+  state.wrong = list.wrong;
+}
+
+async function flagWrong(row, deal) {
+  await saveWrong((list) => markWrong(list, row.term, deal.name));
+  for (const other of state.rows) {
+    if (other.term === row.term && other.deals) other.deals = withoutWrong(other.deals, state.wrong, other.term);
+  }
+  renderRecipe();
+}
+
+async function unflagWrong(index) {
+  const { term } = state.rows[index];
+  await saveWrong((list) => clearWrong(list, term));
+  state.rows.forEach((row, i) => {
+    if (row.term === term && !row.skipped) runRow(i, term);
+  });
 }
 
 function tripLine(label, plan, total) {
@@ -430,7 +481,8 @@ async function runRow(index, term) {
   renderRecipe();
   try {
     const deals = await searchDeals(state.settings.postal, term);
-    Object.assign(row, { status: "ready", deals: rankDeals(deals, term, state.groceryIds) });
+    const ranked = rankDeals(deals, term, state.groceryIds);
+    Object.assign(row, { status: "ready", deals: withoutWrong(ranked, state.wrong, term) });
   } catch {
     row.status = "failed";
   }
@@ -478,7 +530,9 @@ async function startRecipe() {
   }
 
   state.recipe = recipe;
-  state.onList = (await loadList()).recipes.some((entry) => entry.id === recipeId(recipe.url));
+  const list = await loadList();
+  state.onList = list.recipes.some((entry) => entry.id === recipeId(recipe.url));
+  state.wrong = list.wrong;
   state.filter = state.settings.stores.length > 0 ? "mine" : "all";
   state.rows = buildRows(recipe.ingredients);
   renderRecipe();

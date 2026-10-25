@@ -24,6 +24,7 @@ export type ShoppingList = {
   checked: string[];
   removed: string[];
   notAt: Record<string, string[]>;
+  wrong: Record<string, string[]>;
 };
 
 export type RankedDeal = Deal & { tier: number };
@@ -56,6 +57,10 @@ export const EMPTY_LIST: ShoppingList = state.EMPTY_LIST;
 export const BRIDGE: { page: string; extension: string } = state.BRIDGE;
 export const normalizeTrip: (trip: Partial<Trip> | null) => Trip = state.normalizeTrip;
 export const normalizeList: (list: Partial<ShoppingList> | null) => ShoppingList = state.normalizeList;
+export const markWrong: (list: ShoppingList, term: string, name: string) => ShoppingList = state.markWrong;
+export const clearWrong: (list: ShoppingList, term: string) => ShoppingList = state.clearWrong;
+export const withoutWrong: <T extends { name: string }>(deals: T[], wrong: Record<string, string[]>, term: string) => T[] =
+  state.withoutWrong;
 
 export const buildItems: (recipes: ListRecipe[], extras: string[], pantry: string[]) => ListItem[] = list.buildItems;
 export const describeNeed: (item: ListItem) => string | null = list.describeNeed;
