@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const flyers = await getFlyers(postal);
     const stores = [...new Set(flyers.filter((f) => f.categories.includes("Groceries")).map((f) => f.merchant))];
     return Response.json(stores.sort((a, b) => a.localeCompare(b)), {
-      headers: { "cache-control": "private, max-age=3600" },
+      headers: { "cache-control": "public, max-age=3600, s-maxage=21600" },
     });
   } catch {
     return Response.json({ error: "Flipp didn't answer" }, { status: 502 });

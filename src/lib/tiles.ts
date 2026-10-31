@@ -1,127 +1,91 @@
-import "server-only";
-import sharp, { type OverlayOptions } from "sharp";
 import type { Flyer, Rect } from "@/lib/flipp";
 
+/**
+ * Flipp serves each flyer as 256px JPEG tiles at several zoom levels, from a
+ * CDN that any page can load. Tiles are named `{level}_{column}_{row}.jpg`,
+ * with rows counted up from the bottom edge, and every tile is a full 256px
+ * square. Rects are in flyer units, measured from the top-left corner.
+ *
+ * The browser lays the tiles out itself, so showing a flyer costs this site
+ * nothing to render.
+ */
+export type TileSource = {
+  /** The flyer these tiles belong to. */
+  id: number;
+  path: string;
+  resolutions: number[];
+  width: number;
+  height: number;
+};
+
+export type Tile = {
+  url: string;
+  /** Position and size as percentages of the region. */
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 const TILE = 256;
-const MAX_TILES = 96;
-const CACHE_LIMIT = 300;
-const MAX_RENDERING = 4;
+const COVER_ASPECT = 4 / 3;
 
-const rendered = new Map<string, Buffer>();
-const rendering = new Map<string, Promise<Buffer>>();
-
-// Each render fetches dozens of tiles and runs sharp, so only a few run at
-// once, a few more wait their turn, and the rest are turned away.
-const MAX_WAITING = 64;
-let active = 0;
-const waiting: (() => void)[] = [];
-
-async function limited<T>(work: () => Promise<T>): Promise<T> {
-  if (active < MAX_RENDERING) active++;
-  else if (waiting.length < MAX_WAITING) await new Promise<void>((resolve) => waiting.push(resolve));
-  else throw new Error("Too many images rendering");
-  try {
-    return await work();
-  } finally {
-    // Hand this slot straight to the next in line, or free it.
-    const next = waiting.shift();
-    if (next) next();
-    else active--;
-  }
+export function tileSource(flyer: Flyer): TileSource {
+  return { id: flyer.id, path: flyer.tilePath, resolutions: flyer.resolutions, width: flyer.width, height: flyer.height };
 }
 
-function remember(key: string, image: Buffer) {
-  rendered.set(key, image);
-  if (rendered.size > CACHE_LIMIT) {
-    const oldest = rendered.keys().next().value;
-    if (oldest) rendered.delete(oldest);
-  }
-}
-
-async function fetchTile(url: string): Promise<Buffer | null> {
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-    return res.ok ? Buffer.from(await res.arrayBuffer()) : null;
-  } catch {
-    return null;
-  }
+/** The top of the first page, cut to the 3:4 shape of a flyer cover. */
+export function coverRect(firstPage: Rect): Rect {
+  return {
+    ...firstPage,
+    w: Math.min(firstPage.w, firstPage.h / COVER_ASPECT),
+    h: Math.min(firstPage.h, firstPage.w * COVER_ASPECT),
+  };
 }
 
 /**
- * Flipp serves each flyer as 256px JPEG tiles at several zoom levels.
- * Tiles are named `{level}_{column}_{row}.jpg`, with rows counted up from the bottom edge.
- * Rects are in flyer units, measured from the top-left corner.
+ * The tiles covering `rect`, from the smallest zoom level that is still at
+ * least `outWidth` pixels across, or null when the rect misses the flyer.
  */
-export async function renderRegion(flyer: Flyer, rect: Rect, outWidth: number): Promise<Buffer> {
-  const key = `${flyer.id}:${rect.x}:${rect.y}:${rect.w}:${rect.h}:${outWidth}`;
-  const cached = rendered.get(key);
-  if (cached) return cached;
+export function tileLayout(source: TileSource, rect: Rect, outWidth: number): { aspect: number; tiles: Tile[] } | null {
+  const x = Math.max(0, rect.x);
+  const y = Math.max(0, rect.y);
+  const w = Math.min(rect.w, source.width - x);
+  const h = Math.min(rect.h, source.height - y);
+  if (!(w > 0 && h > 0) || source.resolutions.length === 0) return null;
 
-  // The same image requested twice at once is only built once.
-  let pending = rendering.get(key);
-  if (!pending) {
-    pending = limited(() => render(flyer, rect, outWidth)).finally(() => rendering.delete(key));
-    rendering.set(key, pending);
-  }
-  const image = await pending;
-  remember(key, image);
-  return image;
-}
-
-async function render(flyer: Flyer, rect: Rect, outWidth: number): Promise<Buffer> {
-  const levels = flyer.resolutions;
-  let level = levels.findIndex((unitsPerPixel) => rect.w / unitsPerPixel >= outWidth);
+  const levels = source.resolutions;
+  let level = levels.findIndex((unitsPerPixel) => w / unitsPerPixel >= outWidth);
   if (level < 0) level = levels.length - 1;
   const scale = levels[level];
 
-  const left = Math.floor(rect.x / scale);
-  const width = Math.max(1, Math.round(rect.w / scale));
-  const top = Math.round((flyer.height - rect.y) / scale);
-  const bottom = Math.max(0, top - Math.round(rect.h / scale));
+  // Region in this level's pixels; `top` and `bottom` count up from the bottom edge.
+  const left = Math.floor(x / scale);
+  const width = Math.max(1, Math.round(w / scale));
+  const top = Math.round((source.height - y) / scale);
+  const bottom = Math.max(0, top - Math.round(h / scale));
   const height = Math.max(1, top - bottom);
 
+  // Tiles past the flyer's edge don't exist, so never ask for them.
+  const maxCol = Math.floor((Math.ceil(source.width / scale) - 1) / TILE);
+  const maxRow = Math.floor((Math.ceil(source.height / scale) - 1) / TILE);
   const firstCol = Math.floor(left / TILE);
-  const lastCol = Math.floor((left + width - 1) / TILE);
+  const lastCol = Math.min(maxCol, Math.floor((left + width - 1) / TILE));
   const firstRow = Math.floor(bottom / TILE);
-  const lastRow = Math.floor((top - 1) / TILE);
+  const lastRow = Math.min(maxRow, Math.floor((top - 1) / TILE));
 
-  const count = (lastCol - firstCol + 1) * (lastRow - firstRow + 1);
-  if (count > MAX_TILES) throw new Error(`Region needs ${count} tiles`);
-
-  const base = `https://f.wishabi.net/${flyer.tilePath.replace(/\/?$/, "/")}`;
-  const jobs: Promise<OverlayOptions | null>[] = [];
-  for (let col = firstCol; col <= lastCol; col++) {
-    for (let row = firstRow; row <= lastRow; row++) {
-      jobs.push(
-        fetchTile(`${base}${level}_${col}_${row}.jpg`).then((input) =>
-          input ? { input, left: (col - firstCol) * TILE, top: (lastRow - row) * TILE } : null,
-        ),
-      );
+  const base = `https://f.wishabi.net/${source.path.replace(/\/?$/, "/")}`;
+  const tiles: Tile[] = [];
+  for (let row = lastRow; row >= firstRow; row--) {
+    for (let col = firstCol; col <= lastCol; col++) {
+      tiles.push({
+        url: `${base}${level}_${col}_${row}.jpg`,
+        left: ((col * TILE - left) / width) * 100,
+        top: ((top - (row + 1) * TILE) / height) * 100,
+        width: (TILE / width) * 100,
+        height: (TILE / height) * 100,
+      });
     }
   }
-  const tiles = (await Promise.all(jobs)).filter((tile): tile is OverlayOptions => tile !== null);
-  if (tiles.length === 0) throw new Error("No tiles available");
-
-  const canvas = await sharp({
-    create: {
-      width: (lastCol - firstCol + 1) * TILE,
-      height: (lastRow - firstRow + 1) * TILE,
-      channels: 3,
-      background: "#ffffff",
-    },
-  })
-    .composite(tiles)
-    .png()
-    .toBuffer();
-
-  return sharp(canvas)
-    .extract({
-      left: left - firstCol * TILE,
-      top: (lastRow + 1) * TILE - top,
-      width,
-      height,
-    })
-    .resize({ width: outWidth, withoutEnlargement: true })
-    .webp({ quality: 82 })
-    .toBuffer();
+  return { aspect: width / height, tiles };
 }

@@ -4,16 +4,17 @@ import { useState } from "react";
 import { DealDialog } from "@/components/deal-dialog";
 import { DealRow } from "@/components/deal-row";
 import type { Deal } from "@/lib/flipp";
+import type { TileSource } from "@/lib/tiles";
 
 export type DealListProps = {
   deals: Deal[];
   highlightFirst?: boolean;
   showStore?: boolean;
-  /** Where these deals were found, when it may not be this site's saved postal code. */
-  postal?: string;
+  /** Tiles of the flyers these deals come from. */
+  sources?: TileSource[];
 };
 
-export function DealList({ deals, highlightFirst = false, showStore = true, postal }: DealListProps) {
+export function DealList({ deals, highlightFirst = false, showStore = true, sources }: DealListProps) {
   const [open, setOpen] = useState<Deal | null>(null);
 
   return (
@@ -29,7 +30,7 @@ export function DealList({ deals, highlightFirst = false, showStore = true, post
           />
         ))}
       </ul>
-      <DealDialog deal={open} postal={postal} onClose={() => setOpen(null)} />
+      <DealDialog deal={open} sources={sources} onClose={() => setOpen(null)} />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { ResultsSkeleton } from "@/components/skeletons";
 import { getFlyer } from "@/lib/flipp";
 import { formatRange } from "@/lib/format";
 import { normalizePostal, readPostal } from "@/lib/postal";
+import { tileSource } from "@/lib/tiles";
 
 async function Flyer({ params, searchParams }: PageProps<"/flyers/[id]">) {
   const { id } = await params;
@@ -35,7 +36,7 @@ async function Flyer({ params, searchParams }: PageProps<"/flyers/[id]">) {
           {pages.length} pages, {deals.length} deals
         </p>
       </div>
-      <FlyerView flyerId={flyerId} postal={postal} pages={pages} deals={deals} />
+      <FlyerView source={flyer ? tileSource(flyer) : null} pages={pages} deals={deals} />
     </>
   );
 }

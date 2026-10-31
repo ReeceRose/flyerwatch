@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FlyerDeals } from "@/components/flyer-deals";
 import { FlyerPages } from "@/components/flyer-pages";
 import type { Deal, FlyerPage } from "@/lib/flipp";
+import type { TileSource } from "@/lib/tiles";
 
 const VIEWS = [
   { key: "pages", label: "Flyer" },
@@ -11,13 +12,11 @@ const VIEWS = [
 ];
 
 export function FlyerView({
-  flyerId,
-  postal,
+  source,
   pages,
   deals,
 }: {
-  flyerId: number;
-  postal: string;
+  source: TileSource | null;
   pages: FlyerPage[];
   deals: Deal[];
 }) {
@@ -48,11 +47,11 @@ export function FlyerView({
         ))}
       </div>
       {view === "list" ? (
-        <FlyerDeals deals={deals} postal={postal} />
+        <FlyerDeals deals={deals} source={source} />
       ) : (
         <>
           <p className="mb-6 text-muted">Tap a deal on the page to see its price details.</p>
-          <FlyerPages flyerId={flyerId} postal={postal} pages={pages} deals={deals} />
+          <FlyerPages source={source} pages={pages} deals={deals} />
         </>
       )}
     </>

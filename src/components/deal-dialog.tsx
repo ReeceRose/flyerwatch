@@ -1,22 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FallbackImage } from "@/components/fallback-image";
+import { FlyerRegion } from "@/components/flyer-region";
 import { PriceTag } from "@/components/price-tag";
 import type { Deal, DealDetail } from "@/lib/flipp";
 import { formatDay, tidyName } from "@/lib/format";
-import { dealImageUrl } from "@/lib/images";
 import { formatMoney, pricePerItem, pricePerLb } from "@/lib/price";
+import type { TileSource } from "@/lib/tiles";
 
 type Status = "idle" | "loading" | "ready" | "failed";
 
 export function DealDialog({
   deal,
-  postal,
+  sources,
   onClose,
 }: {
   deal: Deal | null;
-  postal?: string;
+  /** Tiles of the flyers these deals come from, to show each deal as it's printed. */
+  sources?: TileSource[];
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -60,6 +61,10 @@ export function DealDialog({
       }
     : null;
 
+  const source = deal?.rect ? sources?.find((s) => s.id === deal.flyerId) : undefined;
+  // Fill the 4:3 box along whichever side the deal is longer on.
+  const fill = deal?.rect && deal.rect.w / deal.rect.h > 4 / 3 ? "w-full" : "h-full";
+
   const each = shown ? pricePerItem(shown) : null;
   const perLb = shown ? pricePerLb(shown) : null;
   const multi = shown?.prePriceText && each !== null && shown.price !== each;
@@ -98,12 +103,11 @@ export function DealDialog({
 
           <div className="mt-6 grid grid-cols-[1fr_auto] items-end gap-6">
             <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-shelf p-4">
-              <FallbackImage
-                src={dealImageUrl(shown, 900, postal)}
-                fallback={shown.imageUrl}
-                loading="eager"
-                className="max-h-full max-w-full object-contain"
-              />
+              {source && shown.rect ? (
+                <FlyerRegion source={source} rect={shown.rect} width={900} loading="eager" className={`${fill} rounded-md`} />
+              ) : shown.imageUrl ? (
+                <img src={shown.imageUrl} alt="" className="max-h-full max-w-full object-contain" />
+              ) : null}
             </div>
             <div className="tag-drop" key={status}>
               <PriceTag deal={shown} size="lg" />

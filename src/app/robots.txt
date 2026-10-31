@@ -1,0 +1,6 @@
+# Each flyer page, search and flyer image is built on demand from Flipp, so
+# crawlers only get the home page and the tour.
+User-Agent: *
+Allow: /$
+Allow: /tour$
+Disallow: /

@@ -222,3 +222,16 @@ export async function getDealDetail(itemId: number): Promise<DealDetail> {
     flyerImageUrl: https(item.image_url),
   };
 }
+
+/**
+ * Where the first page sits, for drawing a flyer's cover. A flyer's pages never
+ * change, so this is kept for days and shared by every postal code and server.
+ */
+export async function getFirstPage(flyerId: number): Promise<Rect | null> {
+  "use cache: remote";
+  cacheLife("days");
+
+  const data = await get<{ pages?: RawPage[] }>(`/flyers/${flyerId}`);
+  const first = (data.pages ?? []).toSorted((a, b) => a.page - b.page)[0];
+  return first ? toRect(first) : null;
+}

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { DealDialog } from "@/components/deal-dialog";
+import { FlyerRegion } from "@/components/flyer-region";
 import type { Deal, FlyerPage } from "@/lib/flipp";
 import { tidyName } from "@/lib/format";
-import { regionUrl } from "@/lib/images";
+import type { TileSource } from "@/lib/tiles";
 
 const PAGE_WIDTH = 1100;
 
@@ -23,13 +24,11 @@ function percent(value: number, total: number): string {
 }
 
 export function FlyerPages({
-  flyerId,
-  postal,
+  source,
   pages,
   deals,
 }: {
-  flyerId: number;
-  postal: string;
+  source: TileSource | null;
   pages: FlyerPage[];
   deals: Deal[];
 }) {
@@ -50,13 +49,16 @@ export function FlyerPages({
                 className="relative overflow-hidden rounded-lg border border-rule bg-shelf"
                 style={{ aspectRatio: `${rect.w} / ${rect.h}` }}
               >
-                <img
-                  src={regionUrl(flyerId, rect, PAGE_WIDTH, postal)}
-                  alt={`Page ${page.page}`}
-                  loading={page.page <= 1 ? "eager" : "lazy"}
-                  decoding="async"
-                  className="absolute inset-0 h-full w-full"
-                />
+                {source ? (
+                  <FlyerRegion
+                    source={source}
+                    rect={rect}
+                    width={PAGE_WIDTH}
+                    alt={`Page ${page.page}`}
+                    loading={page.page <= 1 ? "eager" : "lazy"}
+                    className="absolute! inset-0 h-full w-full"
+                  />
+                ) : null}
                 {dealsOnPage(page, deals).map((deal) => {
                   const r = deal.rect;
                   if (!r) return null;
@@ -85,7 +87,7 @@ export function FlyerPages({
           );
         })}
       </ol>
-      <DealDialog deal={open} postal={postal} onClose={() => setOpen(null)} />
+      <DealDialog deal={open} sources={source ? [source] : undefined} onClose={() => setOpen(null)} />
     </>
   );
 }

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useDeferredValue, useId, useState } from "react";
-import { FallbackImage } from "@/components/fallback-image";
-import type { Flyer } from "@/lib/flipp";
+import { FlyerRegion } from "@/components/flyer-region";
+import type { Flyer, Rect } from "@/lib/flipp";
 import { formatRange } from "@/lib/format";
-import { coverUrl } from "@/lib/images";
+import { tileSource } from "@/lib/tiles";
 
 function normalize(value: string): string {
   return value
@@ -22,7 +22,18 @@ function matches(flyer: Flyer, terms: string[]): boolean {
   return terms.every((term) => haystack.includes(term) || squashed.includes(term));
 }
 
-export function FlyerBrowser({ flyers, showAll }: { flyers: Flyer[]; showAll: boolean }) {
+const COVER_WIDTH = 480;
+
+export function FlyerBrowser({
+  flyers,
+  covers,
+  showAll,
+}: {
+  flyers: Flyer[];
+  /** The part of each flyer to show on its card, by flyer id. */
+  covers: Record<number, Rect>;
+  showAll: boolean;
+}) {
   const [query, setQuery] = useState("");
   const deferred = useDeferredValue(query);
   const inputId = useId();
@@ -67,11 +78,22 @@ export function FlyerBrowser({ flyers, showAll }: { flyers: Flyer[]; showAll: bo
             <li key={flyer.id}>
               <Link href={`/flyers/${flyer.id}`} className="group block">
                 <span className="block aspect-[3/4] overflow-hidden rounded-lg border border-rule bg-shelf transition-transform duration-200 group-hover:-rotate-1 group-hover:scale-[1.02] motion-reduce:transition-none">
-                  <FallbackImage
-                    src={coverUrl(flyer.id)}
-                    fallback={flyer.thumbnailUrl}
-                    className="h-full w-full object-cover object-top"
-                  />
+                  {covers[flyer.id] ? (
+                    <FlyerRegion
+                      source={tileSource(flyer)}
+                      rect={covers[flyer.id]}
+                      width={COVER_WIDTH}
+                      className="h-full w-full"
+                    />
+                  ) : flyer.thumbnailUrl ? (
+                    <img
+                      src={flyer.thumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover object-left-top"
+                    />
+                  ) : null}
                 </span>
                 <span className="mt-3 block text-lg font-bold leading-tight">{flyer.merchant}</span>
                 <span className="mt-0.5 block text-sm text-muted">

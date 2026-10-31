@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const [flyers, deals] = await Promise.all([getFlyers(postal), searchDeals(postal, term)]);
     const grocery = new Set(flyers.filter((f) => f.categories.includes("Groceries")).map((f) => f.id));
     return Response.json(rankDeals(deals, term, grocery).slice(0, MAX_DEALS), {
-      headers: { "cache-control": "private, max-age=1800" },
+      headers: { "cache-control": "public, max-age=1800, s-maxage=3600" },
     });
   } catch {
     return Response.json({ error: "Flipp didn't answer" }, { status: 502 });

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DealList } from "@/components/deal-list";
-import { type Deal, searchDeals } from "@/lib/flipp";
+import { type Deal, type Flyer, getFlyers, searchDeals } from "@/lib/flipp";
 import { pricePerItem, pricePerLb } from "@/lib/price";
 import { readPostal } from "@/lib/postal";
+import { tileSource } from "@/lib/tiles";
 
 type Sort = "price" | "weight";
 
@@ -64,8 +65,9 @@ export async function SearchResults({ query, store, sort }: { query: string; sto
 
   const postal = await readPostal();
   let deals: Deal[];
+  let flyers: Flyer[];
   try {
-    deals = await searchDeals(postal, query);
+    [deals, flyers] = await Promise.all([searchDeals(postal, query), getFlyers(postal).catch(() => [])]);
   } catch {
     return (
       <p className="rounded-2xl bg-shelf p-6 text-lg">
@@ -121,7 +123,11 @@ export async function SearchResults({ query, store, sort }: { query: string; sto
           ))}
         </div>
       ) : null}
-      <DealList deals={sorted} highlightFirst />
+      <DealList
+        deals={sorted}
+        highlightFirst
+        sources={flyers.filter((f) => deals.some((d) => d.flyerId === f.id)).map(tileSource)}
+      />
       {sort === "weight" ? (
         <p className="mt-4 text-sm text-muted">
           Per-pound prices are worked out from the flyer&apos;s units. Items sold by the package go last.
